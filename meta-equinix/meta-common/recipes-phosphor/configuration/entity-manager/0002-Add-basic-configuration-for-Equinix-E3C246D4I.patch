@@ -1,0 +1,456 @@
+From f1dee6c9a1fe42c042d41907b7584cd4f453e8f6 Mon Sep 17 00:00:00 2001
+From: Zev Weiss <zev@bewilderbeest.net>
+Date: Wed, 27 Jan 2021 00:09:16 +0000
+Subject: [PATCH] Add basic configuration for Equinix E3C246D4I
+
+Just a XeonCPU sensor and a w83773g motherboard temp sensor.
+---
+ configurations/Equinix_E3C246D4I.json | 58 ++++++++++++++++++++++++++++++++++++
+ meson.build                          |  1 +
+ 2 files changed, 59 insertions(+)
+ create mode 100644 configurations/Equinix_E3C246D4I.json
+
+diff --git a/configurations/Equinix_E3C246D4I.json b/configurations/Equinix_E3C246D4I.json
+new file mode 100644
+index 000000000000..829fb8e266f4
+--- /dev/null
++++ b/configurations/Equinix_E3C246D4I.json
+@@ -0,0 +1,424 @@
++{
++    "Exposes": [
++        {
++            "Address": "0x4c",
++            "Bus": 1,
++            "Name": "MB",
++            "Name1": "MB_alt",
++            "Thresholds": [
++                {
++                    "Direction": "greater than",
++                    "Name": "upper critical",
++                    "Severity": 1,
++                    "Value": 115
++                },
++                {
++                    "Direction": "greater than",
++                    "Name": "upper non critical",
++                    "Severity": 0,
++                    "Value": 110
++                },
++                {
++                    "Direction": "less than",
++                    "Name": "lower non critical",
++                    "Severity": 0,
++                    "Value": 5
++                },
++                {
++                    "Direction": "less than",
++                    "Name": "lower critical",
++                    "Severity": 1,
++                    "Value": 0
++                }
++            ],
++            "Type": "W83773G"
++        },
++
++        {
++            "Index": 0,
++            "Name": "3.3V Standby",
++            "ScaleFactor": 0.5349,
++            "Thresholds": [
++                {
++                    "Direction": "greater than",
++                    "Name": "upper critical",
++                    "Severity": 1,
++                    "Value": 3.63
++                },
++                {
++                    "Direction": "greater than",
++                    "Name": "upper non critical",
++                    "Severity": 0,
++                    "Value": 3.5
++                },
++                {
++                    "Direction": "less than",
++                    "Name": "lower non critical",
++                    "Severity": 0,
++                    "Value": 3.1
++                },
++                {
++                    "Direction": "less than",
++                    "Name": "lower critical",
++                    "Severity": 1,
++                    "Value": 2.97
++                }
++            ],
++            "Type": "ADC"
++        },
++        {
++            "Index": 1,
++            "Name": "5V Standby",
++            "ScaleFactor": 0.3548,
++            "Thresholds": [
++                {
++                    "Direction": "greater than",
++                    "Name": "upper critical",
++                    "Severity": 1,
++                    "Value": 5.5
++                },
++                {
++                    "Direction": "greater than",
++                    "Name": "upper non critical",
++                    "Severity": 0,
++                    "Value": 5.2
++                },
++                {
++                    "Direction": "less than",
++                    "Name": "lower non critical",
++                    "Severity": 0,
++                    "Value": 4.8
++                },
++                {
++                    "Direction": "less than",
++                    "Name": "lower critical",
++                    "Severity": 1,
++                    "Value": 4.5
++                }
++            ],
++            "Type": "ADC"
++        },
++        {
++            "Index": 2,
++            "Name": "CPU1",
++            "Type": "ADC"
++        },
++        {
++            "Index": 3,
++            "Name": "VCCSA",
++            "PowerState": "On",
++            "Thresholds": [
++                {
++                    "Direction": "greater than",
++                    "Name": "upper critical",
++                    "Severity": 1,
++                    "Value": 1.16
++                },
++                {
++                    "Direction": "greater than",
++                    "Name": "upper non critical",
++                    "Severity": 0,
++                    "Value": 1.09
++                },
++                {
++                    "Direction": "less than",
++                    "Name": "lower non critical",
++                    "Severity": 0,
++                    "Value": 1.01
++                },
++                {
++                    "Direction": "less than",
++                    "Name": "lower critical",
++                    "Severity": 1,
++                    "Value": 0.95
++                }
++            ],
++            "Type": "ADC"
++        },
++        {
++            "Index": 4,
++            "Name": "VCCM",
++            "PowerState": "On",
++            "Thresholds": [
++                {
++                    "Direction": "greater than",
++                    "Name": "upper critical",
++                    "Severity": 1,
++                    "Value": 1.32
++                },
++                {
++                    "Direction": "greater than",
++                    "Name": "upper non critical",
++                    "Severity": 0,
++                    "Value": 1.25
++                },
++                {
++                    "Direction": "less than",
++                    "Name": "lower non critical",
++                    "Severity": 0,
++                    "Value": 1.13
++                },
++                {
++                    "Direction": "less than",
++                    "Name": "lower critical",
++                    "Severity": 1,
++                    "Value": 1.08
++                }
++            ],
++            "Type": "ADC"
++        },
++        {
++            "Index": 5,
++            "Name": "1.05V PCH AUX",
++            "Thresholds": [
++                {
++                    "Direction": "greater than",
++                    "Name": "upper critical",
++                    "Severity": 1,
++                    "Value": 1.16
++                },
++                {
++                    "Direction": "greater than",
++                    "Name": "upper non critical",
++                    "Severity": 0,
++                    "Value": 1.10
++                },
++                {
++                    "Direction": "less than",
++                    "Name": "lower non critical",
++                    "Severity": 0,
++                    "Value": 1.01
++                },
++                {
++                    "Direction": "less than",
++                    "Name": "lower critical",
++                    "Severity": 1,
++                    "Value": 0.95
++                }
++            ],
++            "Type": "ADC"
++        },
++        {
++            "Index": 6,
++            "Name": "VCCIO",
++            "PowerState": "On",
++            "Thresholds": [
++                {
++                    "Direction": "greater than",
++                    "Name": "upper critical",
++                    "Severity": 1,
++                    "Value": 1.05
++                },
++                {
++                    "Direction": "greater than",
++                    "Name": "upper non critical",
++                    "Severity": 0,
++                    "Value": 0.99
++                },
++                {
++                    "Direction": "less than",
++                    "Name": "lower non critical",
++                    "Severity": 0,
++                    "Value": 0.90
++                },
++                {
++                    "Direction": "less than",
++                    "Name": "lower critical",
++                    "Severity": 1,
++                    "Value": 0.86
++                }
++            ],
++            "Type": "ADC"
++        },
++        {
++            "Index": 7,
++            "Name": "VCCGT",
++            "Type": "ADC"
++        },
++        {
++            "Index": 8,
++            "Name": "VPPM",
++            "PowerState": "On",
++            "ScaleFactor": 0.5,
++            "Thresholds": [
++                {
++                    "Direction": "greater than",
++                    "Name": "upper critical",
++                    "Severity": 1,
++                    "Value": 2.84
++                },
++                {
++                    "Direction": "greater than",
++                    "Name": "upper non critical",
++                    "Severity": 0,
++                    "Value": 2.70
++                },
++                {
++                    "Direction": "less than",
++                    "Name": "lower non critical",
++                    "Severity": 0,
++                    "Value": 2.40
++                },
++                {
++                    "Direction": "less than",
++                    "Name": "lower critical",
++                    "Severity": 1,
++                    "Value": 2.32
++                }
++            ],
++            "Type": "ADC"
++        },
++        {
++            "Index": 9,
++            "Name": "VBAT",
++            "ScaleFactor": 0.0227,
++            "Thresholds": [
++                {
++                    "Direction": "greater than",
++                    "Name": "upper critical",
++                    "Severity": 1,
++                    "Value": 3.30
++                },
++                {
++                    "Direction": "greater than",
++                    "Name": "upper non critical",
++                    "Severity": 0,
++                    "Value": 3.18
++                },
++                {
++                    "Direction": "less than",
++                    "Name": "lower non critical",
++                    "Severity": 0,
++                    "Value": 2.82
++                },
++                {
++                    "Direction": "less than",
++                    "Name": "lower critical",
++                    "Severity": 1,
++                    "Value": 2.70
++                }
++            ],
++            "Type": "ADC"
++        },
++        {
++            "Index": 10,
++            "Name": "3.3 Volt",
++            "PowerState": "On",
++            "ScaleFactor": 0.5349,
++            "Thresholds": [
++                {
++                    "Direction": "greater than",
++                    "Name": "upper critical",
++                    "Severity": 1,
++                    "Value": 3.63
++                },
++                {
++                    "Direction": "greater than",
++                    "Name": "upper non critical",
++                    "Severity": 0,
++                    "Value": 3.54
++                },
++                {
++                    "Direction": "less than",
++                    "Name": "lower non critical",
++                    "Severity": 0,
++                    "Value": 3.07
++                },
++                {
++                    "Direction": "less than",
++                    "Name": "lower critical",
++                    "Severity": 1,
++                    "Value": 2.97
++                }
++            ],
++            "Type": "ADC"
++        },
++        {
++            "Index": 11,
++            "Name": "5 Volt",
++            "PowerState": "On",
++            "ScaleFactor": 0.3333,
++            "Thresholds": [
++                {
++                    "Direction": "greater than",
++                    "Name": "upper critical",
++                    "Severity": 1,
++                    "Value": 5.50
++                },
++                {
++                    "Direction": "greater than",
++                    "Name": "upper non critical",
++                    "Severity": 0,
++                    "Value": 5.25
++                },
++                {
++                    "Direction": "less than",
++                    "Name": "lower non critical",
++                    "Severity": 0,
++                    "Value": 4.75
++                },
++                {
++                    "Direction": "less than",
++                    "Name": "lower critical",
++                    "Severity": 1,
++                    "Value": 4.50
++                }
++            ],
++            "Type": "ADC"
++        },
++        {
++            "Index": 12,
++            "Name": "12 Volt",
++            "PowerState": "On",
++            "ScaleFactor": 0.0833,
++            "Thresholds": [
++                {
++                    "Direction": "greater than",
++                    "Name": "upper critical",
++                    "Severity": 1,
++                    "Value": 13.20
++                },
++                {
++                    "Direction": "greater than",
++                    "Name": "upper non critical",
++                    "Severity": 0,
++                    "Value": 12.60
++                },
++                {
++                    "Direction": "less than",
++                    "Name": "lower non critical",
++                    "Severity": 0,
++                    "Value": 11.40
++                },
++                {
++                    "Direction": "less than",
++                    "Name": "lower critical",
++                    "Severity": 1,
++                    "Value": 10.80
++                }
++            ],
++            "Type": "ADC"
++        },
++
++        {
++            "Address": "0x30",
++            "Bus": 0,
++            "CpuID": 1,
++            "Name": "CPU 1",
++            "Type": "XeonCPU"
++        }
++    ],
++    "Name": "Equinix E3C246D4I",
++    "Probe": "xyz.openbmc_project.FruDevice({'BOARD_PRODUCT_NAME': 'E3C246D4I-NL'})",
++    "Type": "Board",
++    "xyz.openbmc_project.Inventory.Decorator.Asset": {
++        "Manufacturer": "$PRODUCT_MANUFACTURER",
++        "Model": "$PRODUCT_PRODUCT_NAME",
++        "PartNumber": "$PRODUCT_PART_NUMBER",
++        "SerialNumber": "$PRODUCT_SERIAL_NUMBER"
++    },
++    "xyz.openbmc_project.Inventory.Decorator.AssetTag": {
++        "AssetTag": "$PRODUCT_ASSET_TAG"
++    },
++    "xyz.openbmc_project.Inventory.Item.System": {}
++}
+diff --git a/meson.build b/meson.build
+index 651446e77246..75f682cecfb6 100644
+--- a/meson.build
++++ b/meson.build
+@@ -96,5 +96,6 @@ configs = [
+     'Nisqually.json',
+     'NVME P4000.json',
++    'Equinix_E3C246D4I.json',
+     'PCIE SSD Retimer.json',
+     'PSSF132202A.json',
+     'PSSF162205A.json',
+-- 
+2.7.4
+
