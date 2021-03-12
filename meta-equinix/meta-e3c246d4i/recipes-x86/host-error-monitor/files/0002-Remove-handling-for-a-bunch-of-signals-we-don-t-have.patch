@@ -1,0 +1,843 @@
+From 991c1d39361a3bacf06efbee59a674d85adb03c9 Mon Sep 17 00:00:00 2001
+From: Zev Weiss <zev@bewilderbeest.net>
+Date: Fri, 12 Feb 2021 15:47:22 -0600
+Subject: [PATCH 2/4] Remove handling for a bunch of signals we don't have
+
+---
+ src/host_error_monitor.cpp | 707 +------------------------------------
+ 1 file changed, 1 insertion(+), 706 deletions(-)
+
+diff --git a/src/host_error_monitor.cpp b/src/host_error_monitor.cpp
+index d52a5dc6a224..a398e44d77ce 100644
+--- a/src/host_error_monitor.cpp
++++ b/src/host_error_monitor.cpp
+@@ -48,61 +48,21 @@ const static constexpr size_t smiTimeoutMs = 90000;
+ // Timers
+ // Timer for CATERR asserted
+ static boost::asio::steady_timer caterrAssertTimer(io);
+-// Timer for ERR0 asserted
+-static boost::asio::steady_timer err0AssertTimer(io);
+-// Timer for ERR1 asserted
+-static boost::asio::steady_timer err1AssertTimer(io);
+-// Timer for ERR2 asserted
+-static boost::asio::steady_timer err2AssertTimer(io);
+ // Timer for SMI asserted
+ static boost::asio::steady_timer smiAssertTimer(io);
+ 
+ // GPIO Lines and Event Descriptors
+ static gpiod::line caterrLine;
+ static boost::asio::posix::stream_descriptor caterrEvent(io);
+-static gpiod::line err0Line;
+-static boost::asio::posix::stream_descriptor err0Event(io);
+-static gpiod::line err1Line;
+-static boost::asio::posix::stream_descriptor err1Event(io);
+-static gpiod::line err2Line;
+-static boost::asio::posix::stream_descriptor err2Event(io);
+ static gpiod::line smiLine;
+ static boost::asio::posix::stream_descriptor smiEvent(io);
+-static gpiod::line cpu1FIVRFaultLine;
+ static gpiod::line cpu1ThermtripLine;
+ static boost::asio::posix::stream_descriptor cpu1ThermtripEvent(io);
+-static gpiod::line cpu2FIVRFaultLine;
+-static gpiod::line cpu2ThermtripLine;
+-static boost::asio::posix::stream_descriptor cpu2ThermtripEvent(io);
+-static gpiod::line cpu1VRHotLine;
+-static boost::asio::posix::stream_descriptor cpu1VRHotEvent(io);
+-static gpiod::line cpu2VRHotLine;
+-static boost::asio::posix::stream_descriptor cpu1MemABCDVRHotEvent(io);
+-static gpiod::line cpu1MemEFGHVRHotLine;
+-static boost::asio::posix::stream_descriptor cpu1MemEFGHVRHotEvent(io);
+-static gpiod::line cpu2MemABCDVRHotLine;
+-static boost::asio::posix::stream_descriptor cpu2VRHotEvent(io);
+-static gpiod::line cpu1MemABCDVRHotLine;
+-static boost::asio::posix::stream_descriptor cpu2MemABCDVRHotEvent(io);
+-static gpiod::line cpu2MemEFGHVRHotLine;
+-static boost::asio::posix::stream_descriptor cpu2MemEFGHVRHotEvent(io);
+ //----------------------------------
+ // PCH_BMC_THERMTRIP function related definition
+ //----------------------------------
+ static gpiod::line pchThermtripLine;
+ static boost::asio::posix::stream_descriptor pchThermtripEvent(io);
+-//----------------------------------
+-// CPU_MEM_THERM_EVENT function related definition
+-//----------------------------------
+-static gpiod::line cpu1MemtripLine;
+-static boost::asio::posix::stream_descriptor cpu1MemtripEvent(io);
+-static gpiod::line cpu2MemtripLine;
+-static boost::asio::posix::stream_descriptor cpu2MemtripEvent(io);
+-//---------------------------------
+-// CPU_MISMATCH function related definition
+-//---------------------------------
+-static gpiod::line cpu1MismatchLine;
+-static gpiod::line cpu2MismatchLine;
+ 
+ // beep function for CPU error
+ const static constexpr uint8_t beepCPUIERR = 4;
+@@ -175,15 +135,6 @@ static void smiTimeoutLog()
+                     "REDFISH_MESSAGE_ARGS=%s", "SMI Timeout", NULL);
+ }
+ 
+-static void cpuBootFIVRFaultLog(const int cpuNum)
+-{
+-    std::string msg = "Boot FIVR Fault on CPU " + std::to_string(cpuNum);
+-
+-    sd_journal_send("MESSAGE=HostError: %s", msg.c_str(), "PRIORITY=%i",
+-                    LOG_INFO, "REDFISH_MESSAGE_ID=%s", "OpenBMC.0.1.CPUError",
+-                    "REDFISH_MESSAGE_ARGS=%s", msg.c_str(), NULL);
+-}
+-
+ static void cpuThermTripLog(const int cpuNum)
+ {
+     std::string msg = "CPU " + std::to_string(cpuNum) + " thermal trip";
+@@ -194,36 +145,6 @@ static void cpuThermTripLog(const int cpuNum)
+                     cpuNum, NULL);
+ }
+ 
+-static void memThermTripLog(const int cpuNum)
+-{
+-    std::string cpuNumber = "CPU " + std::to_string(cpuNum);
+-    std::string msg = cpuNumber + " Memory Thermal trip.";
+-
+-    sd_journal_send("MESSAGE=HostError: %s", msg.c_str(), "PRIORITY=%i",
+-                    LOG_ERR, "REDFISH_MESSAGE_ID=%s",
+-                    "OpenBMC.0.1.MemoryThermTrip", "REDFISH_MESSAGE_ARGS=%s",
+-                    cpuNumber.c_str(), NULL);
+-}
+-
+-static void cpuMismatchLog(const int cpuNum)
+-{
+-    std::string msg = "CPU " + std::to_string(cpuNum) + " mismatch";
+-
+-    sd_journal_send("MESSAGE= %s", msg.c_str(), "PRIORITY=%i", LOG_ERR,
+-                    "REDFISH_MESSAGE_ID=%s", "OpenBMC.0.1.CPUMismatch",
+-                    "REDFISH_MESSAGE_ARGS=%d", cpuNum, NULL);
+-}
+-
+-static void cpuVRHotLog(const std::string& vr)
+-{
+-    std::string msg = vr + " Voltage Regulator Overheated.";
+-
+-    sd_journal_send("MESSAGE=HostError: %s", msg.c_str(), "PRIORITY=%i",
+-                    LOG_INFO, "REDFISH_MESSAGE_ID=%s",
+-                    "OpenBMC.0.1.VoltageRegulatorOverheated",
+-                    "REDFISH_MESSAGE_ARGS=%s", vr.c_str(), NULL);
+-}
+-
+ static void ssbThermTripLog()
+ {
+     sd_journal_send("MESSAGE=HostError: SSB thermal trip", "PRIORITY=%i",
+@@ -314,9 +235,6 @@ static std::shared_ptr<sdbusplus::bus::match::match> startHostStateMonitor()
+                 // No host events should fire while off, so cancel any pending
+                 // timers
+                 caterrAssertTimer.cancel();
+-                err0AssertTimer.cancel();
+-                err1AssertTimer.cancel();
+-                err2AssertTimer.cancel();
+                 smiAssertTimer.cancel();
+             }
+             else
+@@ -811,14 +729,7 @@ static void caterrHandler()
+ 
+ static void cpu1ThermtripAssertHandler()
+ {
+-    if (cpu1FIVRFaultLine.get_value() == 0)
+-    {
+-        cpuBootFIVRFaultLog(1);
+-    }
+-    else
+-    {
+-        cpuThermTripLog(1);
+-    }
++    cpuThermTripLog(1);
+ }
+ 
+ static void cpu1ThermtripHandler()
+@@ -845,262 +756,6 @@ static void cpu1ThermtripHandler()
+         });
+ }
+ 
+-static void cpu1MemtripHandler()
+-{
+-    gpiod::line_event gpioLineEvent = cpu1MemtripLine.event_read();
+-
+-    bool cpu1Memtrip =
+-        gpioLineEvent.event_type == gpiod::line_event::FALLING_EDGE;
+-    if (cpu1Memtrip)
+-    {
+-        memThermTripLog(1);
+-    }
+-
+-    cpu1MemtripEvent.async_wait(
+-        boost::asio::posix::stream_descriptor::wait_read,
+-        [](const boost::system::error_code ec) {
+-            if (ec)
+-            {
+-                std::cerr << "CPU 1 Memory Thermaltrip handler error: "
+-                          << ec.message() << "\n";
+-                return;
+-            }
+-            cpu1MemtripHandler();
+-        });
+-}
+-
+-static void cpu2ThermtripAssertHandler()
+-{
+-    if (cpu2FIVRFaultLine.get_value() == 0)
+-    {
+-        cpuBootFIVRFaultLog(2);
+-    }
+-    else
+-    {
+-        cpuThermTripLog(2);
+-    }
+-}
+-
+-static void cpu2ThermtripHandler()
+-{
+-    gpiod::line_event gpioLineEvent = cpu2ThermtripLine.event_read();
+-
+-    bool cpu2Thermtrip =
+-        gpioLineEvent.event_type == gpiod::line_event::FALLING_EDGE;
+-    if (cpu2Thermtrip)
+-    {
+-        cpu2ThermtripAssertHandler();
+-    }
+-
+-    cpu2ThermtripEvent.async_wait(
+-        boost::asio::posix::stream_descriptor::wait_read,
+-        [](const boost::system::error_code ec) {
+-            if (ec)
+-            {
+-                std::cerr << "CPU 2 Thermtrip handler error: " << ec.message()
+-                          << "\n";
+-                return;
+-            }
+-            cpu2ThermtripHandler();
+-        });
+-}
+-
+-static void cpu2MemtripHandler()
+-{
+-    gpiod::line_event gpioLineEvent = cpu2MemtripLine.event_read();
+-
+-    bool cpu2Memtrip =
+-        gpioLineEvent.event_type == gpiod::line_event::FALLING_EDGE;
+-    if (cpu2Memtrip)
+-    {
+-        memThermTripLog(2);
+-    }
+-
+-    cpu2MemtripEvent.async_wait(
+-        boost::asio::posix::stream_descriptor::wait_read,
+-        [](const boost::system::error_code ec) {
+-            if (ec)
+-            {
+-                std::cerr << "CPU 2 Memory Thermaltrip handler error: "
+-                          << ec.message() << "\n";
+-                return;
+-            }
+-            cpu2MemtripHandler();
+-        });
+-}
+-
+-static void cpu1VRHotAssertHandler()
+-{
+-    cpuVRHotLog("CPU 1");
+-}
+-
+-static void cpu1VRHotHandler()
+-{
+-    gpiod::line_event gpioLineEvent = cpu1VRHotLine.event_read();
+-
+-    bool cpu1VRHot =
+-        gpioLineEvent.event_type == gpiod::line_event::FALLING_EDGE;
+-    if (cpu1VRHot)
+-    {
+-        cpu1VRHotAssertHandler();
+-    }
+-
+-    cpu1VRHotEvent.async_wait(boost::asio::posix::stream_descriptor::wait_read,
+-                              [](const boost::system::error_code ec) {
+-                                  if (ec)
+-                                  {
+-                                      std::cerr << "CPU 1 VRHot handler error: "
+-                                                << ec.message() << "\n";
+-                                      return;
+-                                  }
+-                                  cpu1VRHotHandler();
+-                              });
+-}
+-
+-static void cpu1MemABCDVRHotAssertHandler()
+-{
+-    cpuVRHotLog("CPU 1 Memory ABCD");
+-}
+-
+-static void cpu1MemABCDVRHotHandler()
+-{
+-    gpiod::line_event gpioLineEvent = cpu1MemABCDVRHotLine.event_read();
+-
+-    bool cpu1MemABCDVRHot =
+-        gpioLineEvent.event_type == gpiod::line_event::FALLING_EDGE;
+-    if (cpu1MemABCDVRHot)
+-    {
+-        cpu1MemABCDVRHotAssertHandler();
+-    }
+-
+-    cpu1MemABCDVRHotEvent.async_wait(
+-        boost::asio::posix::stream_descriptor::wait_read,
+-        [](const boost::system::error_code ec) {
+-            if (ec)
+-            {
+-                std::cerr << "CPU 1 Memory ABCD VRHot handler error: "
+-                          << ec.message() << "\n";
+-                return;
+-            }
+-            cpu1MemABCDVRHotHandler();
+-        });
+-}
+-
+-static void cpu1MemEFGHVRHotAssertHandler()
+-{
+-    cpuVRHotLog("CPU 1 Memory EFGH");
+-}
+-
+-static void cpu1MemEFGHVRHotHandler()
+-{
+-    gpiod::line_event gpioLineEvent = cpu1MemEFGHVRHotLine.event_read();
+-
+-    bool cpu1MemEFGHVRHot =
+-        gpioLineEvent.event_type == gpiod::line_event::FALLING_EDGE;
+-    if (cpu1MemEFGHVRHot)
+-    {
+-        cpu1MemEFGHVRHotAssertHandler();
+-    }
+-
+-    cpu1MemEFGHVRHotEvent.async_wait(
+-        boost::asio::posix::stream_descriptor::wait_read,
+-        [](const boost::system::error_code ec) {
+-            if (ec)
+-            {
+-                std::cerr << "CPU 1 Memory EFGH VRHot handler error: "
+-                          << ec.message() << "\n";
+-                return;
+-            }
+-            cpu1MemEFGHVRHotHandler();
+-        });
+-}
+-
+-static void cpu2VRHotAssertHandler()
+-{
+-    cpuVRHotLog("CPU 2");
+-}
+-
+-static void cpu2VRHotHandler()
+-{
+-    gpiod::line_event gpioLineEvent = cpu2VRHotLine.event_read();
+-
+-    bool cpu2VRHot =
+-        gpioLineEvent.event_type == gpiod::line_event::FALLING_EDGE;
+-    if (cpu2VRHot)
+-    {
+-        cpu2VRHotAssertHandler();
+-    }
+-
+-    cpu2VRHotEvent.async_wait(boost::asio::posix::stream_descriptor::wait_read,
+-                              [](const boost::system::error_code ec) {
+-                                  if (ec)
+-                                  {
+-                                      std::cerr << "CPU 2 VRHot handler error: "
+-                                                << ec.message() << "\n";
+-                                      return;
+-                                  }
+-                                  cpu2VRHotHandler();
+-                              });
+-}
+-
+-static void cpu2MemABCDVRHotAssertHandler()
+-{
+-    cpuVRHotLog("CPU 2 Memory ABCD");
+-}
+-
+-static void cpu2MemABCDVRHotHandler()
+-{
+-    gpiod::line_event gpioLineEvent = cpu2MemABCDVRHotLine.event_read();
+-
+-    bool cpu2MemABCDVRHot =
+-        gpioLineEvent.event_type == gpiod::line_event::FALLING_EDGE;
+-    if (cpu2MemABCDVRHot)
+-    {
+-        cpu2MemABCDVRHotAssertHandler();
+-    }
+-
+-    cpu2MemABCDVRHotEvent.async_wait(
+-        boost::asio::posix::stream_descriptor::wait_read,
+-        [](const boost::system::error_code ec) {
+-            if (ec)
+-            {
+-                std::cerr << "CPU 2 Memory ABCD VRHot handler error: "
+-                          << ec.message() << "\n";
+-                return;
+-            }
+-            cpu2MemABCDVRHotHandler();
+-        });
+-}
+-
+-static void cpu2MemEFGHVRHotAssertHandler()
+-{
+-    cpuVRHotLog("CPU 2 Memory EFGH");
+-}
+-
+-static void cpu2MemEFGHVRHotHandler()
+-{
+-    gpiod::line_event gpioLineEvent = cpu2MemEFGHVRHotLine.event_read();
+-
+-    bool cpu2MemEFGHVRHot =
+-        gpioLineEvent.event_type == gpiod::line_event::FALLING_EDGE;
+-    if (cpu2MemEFGHVRHot)
+-    {
+-        cpu2MemEFGHVRHotAssertHandler();
+-    }
+-
+-    cpu2MemEFGHVRHotEvent.async_wait(
+-        boost::asio::posix::stream_descriptor::wait_read,
+-        [](const boost::system::error_code ec) {
+-            if (ec)
+-            {
+-                std::cerr << "CPU 2 Memory EFGH VRHot handler error: "
+-                          << ec.message() << "\n";
+-                return;
+-            }
+-            cpu2MemEFGHVRHotHandler();
+-        });
+-}
+-
+ static void pchThermtripHandler()
+ {
+     std::vector<Association> associations;
+@@ -1238,149 +893,6 @@ static void errXAssertHandler(const int errPin,
+     });
+ }
+ 
+-static void err0AssertHandler()
+-{
+-    // Handle the standard ERR0 detection and logging
+-    const static constexpr int err0 = 0;
+-    errXAssertHandler(err0, err0AssertTimer);
+-}
+-
+-static void err0Handler()
+-{
+-    if (!hostOff)
+-    {
+-        gpiod::line_event gpioLineEvent = err0Line.event_read();
+-
+-        bool err0 = gpioLineEvent.event_type == gpiod::line_event::FALLING_EDGE;
+-        if (err0)
+-        {
+-            err0AssertHandler();
+-        }
+-        else
+-        {
+-            err0AssertTimer.cancel();
+-        }
+-    }
+-    err0Event.async_wait(boost::asio::posix::stream_descriptor::wait_read,
+-                         [](const boost::system::error_code ec) {
+-                             if (ec)
+-                             {
+-                                 std::cerr
+-                                     << "err0 handler error: " << ec.message()
+-                                     << "\n";
+-                                 return;
+-                             }
+-                             err0Handler();
+-                         });
+-}
+-
+-static void err1AssertHandler()
+-{
+-    // Handle the standard ERR1 detection and logging
+-    const static constexpr int err1 = 1;
+-    errXAssertHandler(err1, err1AssertTimer);
+-}
+-
+-static void err1Handler()
+-{
+-    if (!hostOff)
+-    {
+-        gpiod::line_event gpioLineEvent = err1Line.event_read();
+-
+-        bool err1 = gpioLineEvent.event_type == gpiod::line_event::FALLING_EDGE;
+-        if (err1)
+-        {
+-            err1AssertHandler();
+-        }
+-        else
+-        {
+-            err1AssertTimer.cancel();
+-        }
+-    }
+-    err1Event.async_wait(boost::asio::posix::stream_descriptor::wait_read,
+-                         [](const boost::system::error_code ec) {
+-                             if (ec)
+-                             {
+-                                 std::cerr
+-                                     << "err1 handler error: " << ec.message()
+-                                     << "\n";
+-                                 return;
+-                             }
+-                             err1Handler();
+-                         });
+-}
+-
+-static void err2AssertHandler()
+-{
+-    // Handle the standard ERR2 detection and logging
+-    const static constexpr int err2 = 2;
+-    errXAssertHandler(err2, err2AssertTimer);
+-    // Also handle reset for ERR2
+-    err2AssertTimer.async_wait([](const boost::system::error_code ec) {
+-        if (ec)
+-        {
+-            // operation_aborted is expected if timer is canceled before
+-            // completion.
+-            if (ec != boost::asio::error::operation_aborted)
+-            {
+-                std::cerr << "err2 timeout async_wait failed: " << ec.message()
+-                          << "\n";
+-            }
+-            return;
+-        }
+-        conn->async_method_call(
+-            [](boost::system::error_code ec,
+-               const std::variant<bool>& property) {
+-                if (ec)
+-                {
+-                    return;
+-                }
+-                const bool* reset = std::get_if<bool>(&property);
+-                if (reset == nullptr)
+-                {
+-                    std::cerr << "Unable to read reset on ERR2 value\n";
+-                    return;
+-                }
+-                startCrashdumpAndRecovery(*reset, "ERR2 Timeout");
+-            },
+-            "xyz.openbmc_project.Settings",
+-            "/xyz/openbmc_project/control/processor_error_config",
+-            "org.freedesktop.DBus.Properties", "Get",
+-            "xyz.openbmc_project.Control.Processor.ErrConfig", "ResetOnERR2");
+-
+-        beep(beepCPUErr2);
+-    });
+-}
+-
+-static void err2Handler()
+-{
+-    if (!hostOff)
+-    {
+-        gpiod::line_event gpioLineEvent = err2Line.event_read();
+-
+-        bool err2 = gpioLineEvent.event_type == gpiod::line_event::FALLING_EDGE;
+-        if (err2)
+-        {
+-            err2AssertHandler();
+-        }
+-        else
+-        {
+-            err2AssertTimer.cancel();
+-        }
+-    }
+-    err2Event.async_wait(boost::asio::posix::stream_descriptor::wait_read,
+-                         [](const boost::system::error_code ec) {
+-                             if (ec)
+-                             {
+-                                 std::cerr
+-                                     << "err2 handler error: " << ec.message()
+-                                     << "\n";
+-                                 return;
+-                             }
+-                             err2Handler();
+-                         });
+-}
+-
+ static void smiAssertHandler()
+ {
+     smiAssertTimer.expires_after(std::chrono::milliseconds(smiTimeoutMs));
+@@ -1460,18 +972,6 @@ static void smiHandler()
+ 
+ static void initializeErrorState()
+ {
+-    // Handle CPU1_MISMATCH if it's asserted now
+-    if (cpu1MismatchLine.get_value() == 1)
+-    {
+-        cpuMismatchLog(1);
+-    }
+-
+-    // Handle CPU2_MISMATCH if it's asserted now
+-    if (cpu2MismatchLine.get_value() == 1)
+-    {
+-        cpuMismatchLog(2);
+-    }
+-
+     // Handle CPU_CATERR if it's asserted now
+     if (caterrLine.get_value() == 0)
+     {
+@@ -1484,24 +984,6 @@ static void initializeErrorState()
+                                                                associations);
+     }
+ 
+-    // Handle CPU_ERR0 if it's asserted now
+-    if (err0Line.get_value() == 0)
+-    {
+-        err0AssertHandler();
+-    }
+-
+-    // Handle CPU_ERR1 if it's asserted now
+-    if (err1Line.get_value() == 0)
+-    {
+-        err1AssertHandler();
+-    }
+-
+-    // Handle CPU_ERR2 if it's asserted now
+-    if (err2Line.get_value() == 0)
+-    {
+-        err2AssertHandler();
+-    }
+-
+     // Handle SMI if it's asserted now
+     if (smiLine.get_value() == 0)
+     {
+@@ -1514,60 +996,6 @@ static void initializeErrorState()
+         cpu1ThermtripAssertHandler();
+     }
+ 
+-    // Handle CPU2_THERMTRIP if it's asserted now
+-    if (cpu2ThermtripLine.get_value() == 0)
+-    {
+-        cpu2ThermtripAssertHandler();
+-    }
+-
+-    // Handle CPU1_MEM_THERM_EVENT (CPU1 DIMM Thermal trip) if it's asserted now
+-    if (cpu1MemtripLine.get_value() == 0)
+-    {
+-        memThermTripLog(1);
+-    }
+-
+-    // Handle CPU2_MEM_THERM_EVENT (CPU2 DIMM Thermal trip) if it's asserted now
+-    if (cpu2MemtripLine.get_value() == 0)
+-    {
+-        memThermTripLog(2);
+-    }
+-
+-    // Handle CPU1_VRHOT if it's asserted now
+-    if (cpu1VRHotLine.get_value() == 0)
+-    {
+-        cpu1VRHotAssertHandler();
+-    }
+-
+-    // Handle CPU1_MEM_ABCD_VRHOT if it's asserted now
+-    if (cpu1MemABCDVRHotLine.get_value() == 0)
+-    {
+-        cpu1MemABCDVRHotAssertHandler();
+-    }
+-
+-    // Handle CPU1_MEM_EFGH_VRHOT if it's asserted now
+-    if (cpu1MemEFGHVRHotLine.get_value() == 0)
+-    {
+-        cpu1MemEFGHVRHotAssertHandler();
+-    }
+-
+-    // Handle CPU2_VRHOT if it's asserted now
+-    if (cpu2VRHotLine.get_value() == 0)
+-    {
+-        cpu2VRHotAssertHandler();
+-    }
+-
+-    // Handle CPU2_MEM_ABCD_VRHOT if it's asserted now
+-    if (cpu2MemABCDVRHotLine.get_value() == 0)
+-    {
+-        cpu2MemABCDVRHotAssertHandler();
+-    }
+-
+-    // Handle CPU2_MEM_EFGH_VRHOT if it's asserted now
+-    if (cpu2MemEFGHVRHotLine.get_value() == 0)
+-    {
+-        cpu2MemEFGHVRHotAssertHandler();
+-    }
+-
+     // Handle PCH_BMC_THERMTRIP if it's asserted now
+     if (pchThermtripLine.get_value() == 0)
+     {
+@@ -1639,20 +1067,6 @@ int main(int argc, char* argv[])
+     std::shared_ptr<sdbusplus::bus::match::match> hostStateMonitor =
+         host_error_monitor::startHostStateMonitor();
+ 
+-    // Request CPU1_MISMATCH GPIO events
+-    if (!host_error_monitor::requestGPIOInput(
+-            "CPU1_MISMATCH", host_error_monitor::cpu1MismatchLine))
+-    {
+-        return -1;
+-    }
+-
+-    // Request CPU2_MISMATCH GPIO events
+-    if (!host_error_monitor::requestGPIOInput(
+-            "CPU2_MISMATCH", host_error_monitor::cpu2MismatchLine))
+-    {
+-        return -1;
+-    }
+-
+     // Initialize the host state
+     host_error_monitor::initializeHostState();
+ 
+@@ -1664,30 +1078,6 @@ int main(int argc, char* argv[])
+         return -1;
+     }
+ 
+-    // Request CPU_ERR0 GPIO events
+-    if (!host_error_monitor::requestGPIOEvents(
+-            "CPU_ERR0", host_error_monitor::err0Handler,
+-            host_error_monitor::err0Line, host_error_monitor::err0Event))
+-    {
+-        return -1;
+-    }
+-
+-    // Request CPU_ERR1 GPIO events
+-    if (!host_error_monitor::requestGPIOEvents(
+-            "CPU_ERR1", host_error_monitor::err1Handler,
+-            host_error_monitor::err1Line, host_error_monitor::err1Event))
+-    {
+-        return -1;
+-    }
+-
+-    // Request CPU_ERR2 GPIO events
+-    if (!host_error_monitor::requestGPIOEvents(
+-            "CPU_ERR2", host_error_monitor::err2Handler,
+-            host_error_monitor::err2Line, host_error_monitor::err2Event))
+-    {
+-        return -1;
+-    }
+-
+     // Request SMI GPIO events
+     if (!host_error_monitor::requestGPIOEvents(
+             "SMI", host_error_monitor::smiHandler, host_error_monitor::smiLine,
+@@ -1696,13 +1086,6 @@ int main(int argc, char* argv[])
+         return -1;
+     }
+ 
+-    // Request CPU1_FIVR_FAULT GPIO input
+-    if (!host_error_monitor::requestGPIOInput(
+-            "CPU1_FIVR_FAULT", host_error_monitor::cpu1FIVRFaultLine))
+-    {
+-        return -1;
+-    }
+-
+     // Request CPU1_THERMTRIP GPIO events
+     if (!host_error_monitor::requestGPIOEvents(
+             "CPU1_THERMTRIP", host_error_monitor::cpu1ThermtripHandler,
+@@ -1712,76 +1095,6 @@ int main(int argc, char* argv[])
+         return -1;
+     }
+ 
+-    // Request CPU2_FIVR_FAULT GPIO input
+-    if (!host_error_monitor::requestGPIOInput(
+-            "CPU2_FIVR_FAULT", host_error_monitor::cpu2FIVRFaultLine))
+-    {
+-        return -1;
+-    }
+-
+-    // Request CPU2_THERMTRIP GPIO events
+-    if (!host_error_monitor::requestGPIOEvents(
+-            "CPU2_THERMTRIP", host_error_monitor::cpu2ThermtripHandler,
+-            host_error_monitor::cpu2ThermtripLine,
+-            host_error_monitor::cpu2ThermtripEvent))
+-    {
+-        return -1;
+-    }
+-
+-    // Request CPU1_VRHOT GPIO events
+-    if (!host_error_monitor::requestGPIOEvents(
+-            "CPU1_VRHOT", host_error_monitor::cpu1VRHotHandler,
+-            host_error_monitor::cpu1VRHotLine,
+-            host_error_monitor::cpu1VRHotEvent))
+-    {
+-        return -1;
+-    }
+-
+-    // Request CPU1_MEM_ABCD_VRHOT GPIO events
+-    if (!host_error_monitor::requestGPIOEvents(
+-            "CPU1_MEM_ABCD_VRHOT", host_error_monitor::cpu1MemABCDVRHotHandler,
+-            host_error_monitor::cpu1MemABCDVRHotLine,
+-            host_error_monitor::cpu1MemABCDVRHotEvent))
+-    {
+-        return -1;
+-    }
+-
+-    // Request CPU1_MEM_EFGH_VRHOT GPIO events
+-    if (!host_error_monitor::requestGPIOEvents(
+-            "CPU1_MEM_EFGH_VRHOT", host_error_monitor::cpu1MemEFGHVRHotHandler,
+-            host_error_monitor::cpu1MemEFGHVRHotLine,
+-            host_error_monitor::cpu1MemEFGHVRHotEvent))
+-    {
+-        return -1;
+-    }
+-
+-    // Request CPU2_VRHOT GPIO events
+-    if (!host_error_monitor::requestGPIOEvents(
+-            "CPU2_VRHOT", host_error_monitor::cpu2VRHotHandler,
+-            host_error_monitor::cpu2VRHotLine,
+-            host_error_monitor::cpu2VRHotEvent))
+-    {
+-        return -1;
+-    }
+-
+-    // Request CPU2_MEM_ABCD_VRHOT GPIO events
+-    if (!host_error_monitor::requestGPIOEvents(
+-            "CPU2_MEM_ABCD_VRHOT", host_error_monitor::cpu2MemABCDVRHotHandler,
+-            host_error_monitor::cpu2MemABCDVRHotLine,
+-            host_error_monitor::cpu2MemABCDVRHotEvent))
+-    {
+-        return -1;
+-    }
+-
+-    // Request CPU2_MEM_EFGH_VRHOT GPIO events
+-    if (!host_error_monitor::requestGPIOEvents(
+-            "CPU2_MEM_EFGH_VRHOT", host_error_monitor::cpu2MemEFGHVRHotHandler,
+-            host_error_monitor::cpu2MemEFGHVRHotLine,
+-            host_error_monitor::cpu2MemEFGHVRHotEvent))
+-    {
+-        return -1;
+-    }
+-
+     // Request PCH_BMC_THERMTRIP GPIO events
+     if (!host_error_monitor::requestGPIOEvents(
+             "PCH_BMC_THERMTRIP", host_error_monitor::pchThermtripHandler,
+@@ -1791,24 +1104,6 @@ int main(int argc, char* argv[])
+         return -1;
+     }
+ 
+-    // Request CPU1_MEM_THERM_EVENT GPIO events
+-    if (!host_error_monitor::requestGPIOEvents(
+-            "CPU1_MEM_THERM_EVENT", host_error_monitor::cpu1MemtripHandler,
+-            host_error_monitor::cpu1MemtripLine,
+-            host_error_monitor::cpu1MemtripEvent))
+-    {
+-        return -1;
+-    }
+-
+-    // Request CPU2_MEM_THERM_EVENT GPIO events
+-    if (!host_error_monitor::requestGPIOEvents(
+-            "CPU2_MEM_THERM_EVENT", host_error_monitor::cpu2MemtripHandler,
+-            host_error_monitor::cpu2MemtripLine,
+-            host_error_monitor::cpu2MemtripEvent))
+-    {
+-        return -1;
+-    }
+-
+     host_error_monitor::io.run();
+ 
+     return 0;
+-- 
+2.17.1
+

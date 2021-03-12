@@ -1,0 +1,95 @@
+From 325c1a8739859d2ea01cae5046b010b5fa6819e8 Mon Sep 17 00:00:00 2001
+From: Zev Weiss <zev@bewilderbeest.net>
+Date: Fri, 12 Feb 2021 17:20:19 -0600
+Subject: [PATCH 4/4] Add PROCHOT monitoring
+
+Basically just a copy/paste/modify of the existing THERMTRIP code.
+---
+ src/host_error_monitor.cpp | 50 ++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 50 insertions(+)
+
+diff --git a/src/host_error_monitor.cpp b/src/host_error_monitor.cpp
+index 212bfb8fd5c7..7afd47f2664d 100644
+--- a/src/host_error_monitor.cpp
++++ b/src/host_error_monitor.cpp
+@@ -58,6 +58,8 @@ static gpiod::line smiLine;
+ static boost::asio::posix::stream_descriptor smiEvent(io);
+ static gpiod::line cpu1ThermtripLine;
+ static boost::asio::posix::stream_descriptor cpu1ThermtripEvent(io);
++static gpiod::line cpu1ProchotLine;
++static boost::asio::posix::stream_descriptor cpu1ProchotEvent(io);
+ //----------------------------------
+ // PCH_BMC_THERMTRIP function related definition
+ //----------------------------------
+@@ -145,6 +147,16 @@ static void cpuThermTripLog(const int cpuNum)
+                     cpuNum, NULL);
+ }
+ 
++static void cpuProchotLog(const int cpuNum)
++{
++    std::string msg = "CPU " + std::to_string(cpuNum) + " processor hot";
++
++    sd_journal_send("MESSAGE=HostError: %s", msg.c_str(), "PRIORITY=%i",
++                    LOG_INFO, "REDFISH_MESSAGE_ID=%s",
++                    "OpenBMC.0.1.CPUProcessorHot", "REDFISH_MESSAGE_ARGS=%d",
++                    cpuNum, NULL);
++}
++
+ static void ssbThermTripLog()
+ {
+     sd_journal_send("MESSAGE=HostError: SSB thermal trip", "PRIORITY=%i",
+@@ -756,6 +768,35 @@ static void cpu1ThermtripHandler()
+         });
+ }
+ 
++static void cpu1ProchotAssertHandler()
++{
++    cpuProchotLog(1);
++}
++
++static void cpu1ProchotHandler()
++{
++    gpiod::line_event gpioLineEvent = cpu1ProchotLine.event_read();
++
++    bool cpu1Prochot =
++        gpioLineEvent.event_type == gpiod::line_event::FALLING_EDGE;
++    if (cpu1Prochot)
++    {
++        cpu1ProchotAssertHandler();
++    }
++
++    cpu1ProchotEvent.async_wait(
++        boost::asio::posix::stream_descriptor::wait_read,
++        [](const boost::system::error_code ec) {
++            if (ec)
++            {
++                std::cerr << "CPU 1 Prochot handler error: " << ec.message()
++                          << "\n";
++                return;
++            }
++            cpu1ProchotHandler();
++        });
++}
++
+ static void pchThermtripHandler()
+ {
+     std::vector<Association> associations;
+@@ -1095,6 +1136,15 @@ int main(int argc, char* argv[])
+         return -1;
+     }
+ 
++    // Request CPU1_PROCHOT GPIO events
++    if (!host_error_monitor::requestGPIOEvents(
++            "CPU1_PROCHOT_N", host_error_monitor::cpu1ProchotHandler,
++            host_error_monitor::cpu1ProchotLine,
++            host_error_monitor::cpu1ProchotEvent))
++    {
++        return -1;
++    }
++
+     // Request PCH_BMC_THERMTRIP GPIO events
+     if (!host_error_monitor::requestGPIOEvents(
+             "PCHHOT_BMC_N", host_error_monitor::pchThermtripHandler,
+-- 
+2.17.1
+

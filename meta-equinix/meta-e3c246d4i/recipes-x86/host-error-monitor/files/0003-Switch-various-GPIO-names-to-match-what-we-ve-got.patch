@@ -1,0 +1,61 @@
+From ce71d184793dfdaac600ce898d63dcc0f66ba4db Mon Sep 17 00:00:00 2001
+From: Zev Weiss <zev@bewilderbeest.net>
+Date: Fri, 12 Feb 2021 15:48:51 -0600
+Subject: [PATCH 3/4] Switch various GPIO names to match what we've got
+
+We could rename these in our device tree, but...shrug?
+
+The SMI signal was a bit of a guess -- we've got:
+ - IRQ_BMC_PCH_SMI_LPC_N
+ - BMC_SMI
+ - IRQ_SMI_ACTIVE_N
+
+I don't know exactly how they all differ, and chose the last one
+somewhat arbitrarily.
+---
+ src/host_error_monitor.cpp | 8 ++++----
+ 1 file changed, 4 insertions(+), 4 deletions(-)
+
+diff --git a/src/host_error_monitor.cpp b/src/host_error_monitor.cpp
+index a398e44d77ce..212bfb8fd5c7 100644
+--- a/src/host_error_monitor.cpp
++++ b/src/host_error_monitor.cpp
+@@ -1072,7 +1072,7 @@ int main(int argc, char* argv[])
+ 
+     // Request CPU_CATERR GPIO events
+     if (!host_error_monitor::requestGPIOEvents(
+-            "CPU_CATERR", host_error_monitor::caterrHandler,
++            "CPU_CATERR_BMC_PCH_N", host_error_monitor::caterrHandler,
+             host_error_monitor::caterrLine, host_error_monitor::caterrEvent))
+     {
+         return -1;
+@@ -1080,7 +1080,7 @@ int main(int argc, char* argv[])
+ 
+     // Request SMI GPIO events
+     if (!host_error_monitor::requestGPIOEvents(
+-            "SMI", host_error_monitor::smiHandler, host_error_monitor::smiLine,
++            "IRQ_SMI_ACTIVE_N", host_error_monitor::smiHandler, host_error_monitor::smiLine,
+             host_error_monitor::smiEvent))
+     {
+         return -1;
+@@ -1088,7 +1088,7 @@ int main(int argc, char* argv[])
+ 
+     // Request CPU1_THERMTRIP GPIO events
+     if (!host_error_monitor::requestGPIOEvents(
+-            "CPU1_THERMTRIP", host_error_monitor::cpu1ThermtripHandler,
++            "CPU1_THERMTRIP_LATCH_N", host_error_monitor::cpu1ThermtripHandler,
+             host_error_monitor::cpu1ThermtripLine,
+             host_error_monitor::cpu1ThermtripEvent))
+     {
+@@ -1097,7 +1097,7 @@ int main(int argc, char* argv[])
+ 
+     // Request PCH_BMC_THERMTRIP GPIO events
+     if (!host_error_monitor::requestGPIOEvents(
+-            "PCH_BMC_THERMTRIP", host_error_monitor::pchThermtripHandler,
++            "PCHHOT_BMC_N", host_error_monitor::pchThermtripHandler,
+             host_error_monitor::pchThermtripLine,
+             host_error_monitor::pchThermtripEvent))
+     {
+-- 
+2.17.1
+
