@@ -1,0 +1,82 @@
+From 5f984831a3f451e299ecaf42d65dee36ff0ffeee Mon Sep 17 00:00:00 2001
+From: "Jason M. Bills" <jason.m.bills@linux.intel.com>
+Date: Fri, 24 May 2019 12:42:59 -0700
+Subject: [PATCH] Allow monitoring of power control input GPIOs
+
+The pass-through input GPIOs cannot be monitored because when
+requested, pass-through is disabled which causes a change on the
+pass-through output.
+
+The SIO GPIOs cannot be monitored because when requested, the
+request is rejected based on the value of the ACPI strap.
+
+This change removes the register check condition from the pass-
+through and desired SIO GPIOs so they can be requsted and
+monitored from power control.
+
+Tested:
+For pass-through, I used gpioset to hold a request on the input
+GPIOs and confirmed that pass-through remained enabled.
+
+For SIO, I used gpioget to confirm that I can successfully request
+and read the GPIO value.
+
+Signed-off-by: Jason M. Bills <jason.m.bills@linux.intel.com>
+Hacked-for-GPIOD-instead-of-GPIOE-by: Zev Weiss <zweiss@equinix.com>
+---
+ drivers/pinctrl/aspeed/pinctrl-aspeed-g5.c | 10 +++++-----
+ drivers/pinctrl/aspeed/pinctrl-aspeed-g6.c | 10 +++++-----
+ 2 files changed, 10 insertions(+), 10 deletions(-)
+
+diff --git a/drivers/pinctrl/aspeed/pinctrl-aspeed-g5.c b/drivers/pinctrl/aspeed/pinctrl-aspeed-g5.c
+index c5406e2da320..fde74c23ca7f 100644
+--- a/drivers/pinctrl/aspeed/pinctrl-aspeed-g5.c
++++ b/drivers/pinctrl/aspeed/pinctrl-aspeed-g5.c
+@@ -205,7 +205,7 @@ FUNC_GROUP_DECL(SD1, C12, A12, B12, D9, D10, E12, C11, B11);
+ 
+ #define F19 24
+ SIG_EXPR_LIST_DECL_SINGLE(F19, SD2CLK, SD2, SD2_DESC);
+-SIG_EXPR_DECL_SINGLE(GPID0IN, GPID0, GPID0_DESC);
++SIG_EXPR_DECL_SINGLE(GPID0IN, GPID0);
+ SIG_EXPR_DECL_SINGLE(GPID0IN, GPID, GPID_DESC);
+ SIG_EXPR_LIST_DECL_DUAL(F19, GPID0IN, GPID0, GPID);
+ PIN_DECL_2(F19, GPIOD0, SD2CLK, GPID0IN);
+@@ -223,7 +223,7 @@ FUNC_GROUP_DECL(GPID0, F19, E21);
+ 
+ #define F20 26
+ SIG_EXPR_LIST_DECL_SINGLE(F20, SD2DAT0, SD2, SD2_DESC);
+-SIG_EXPR_DECL_SINGLE(GPID2IN, GPID2, GPID2_DESC);
++SIG_EXPR_DECL_SINGLE(GPID2IN, GPID2);
+ SIG_EXPR_DECL_SINGLE(GPID2IN, GPID, GPID_DESC);
+ SIG_EXPR_LIST_DECL_DUAL(F20, GPID2IN, GPID2, GPID);
+ PIN_DECL_2(F20, GPIOD2, SD2DAT0, GPID2IN);
+@@ -1412,7 +1412,7 @@ FUNC_GROUP_DECL(ADC15, H4);
+ 
+ #define R22 192
+ SIG_EXPR_DECL_SINGLE(SIOS3, SIOS3, SIG_DESC_SET(SCUA4, 8));
+-SIG_EXPR_DECL_SINGLE(SIOS3, ACPI, ACPI_DESC);
++SIG_EXPR_DECL_SINGLE(SIOS3, ACPI);
+ SIG_EXPR_LIST_DECL_DUAL(R22, SIOS3, SIOS3, ACPI);
+ SIG_EXPR_LIST_DECL_SINGLE(R22, DASHR22, DASHR22, SIG_DESC_SET(SCU94, 10));
+ PIN_DECL_2(R22, GPIOY0, SIOS3, DASHR22);
+@@ -1420,7 +1420,7 @@ FUNC_GROUP_DECL(SIOS3, R22);
+ 
+ #define R21 193
+ SIG_EXPR_DECL_SINGLE(SIOS5, SIOS5, SIG_DESC_SET(SCUA4, 9));
+-SIG_EXPR_DECL_SINGLE(SIOS5, ACPI, ACPI_DESC);
++SIG_EXPR_DECL_SINGLE(SIOS5, ACPI);
+ SIG_EXPR_LIST_DECL_DUAL(R21, SIOS5, SIOS5, ACPI);
+ SIG_EXPR_LIST_DECL_SINGLE(R21, DASHR21, DASHR21, SIG_DESC_SET(SCU94, 10));
+ PIN_DECL_2(R21, GPIOY1, SIOS5, DASHR21);
+@@ -1436,7 +1436,7 @@ FUNC_GROUP_DECL(SIOPWREQ, P22);
+ 
+ #define P21 195
+ SIG_EXPR_DECL_SINGLE(SIOONCTRL, SIOONCTRL, SIG_DESC_SET(SCUA4, 11));
+-SIG_EXPR_DECL_SINGLE(SIOONCTRL, ACPI, ACPI_DESC);
++SIG_EXPR_DECL_SINGLE(SIOONCTRL, ACPI);
+ SIG_EXPR_LIST_DECL_DUAL(P21, SIOONCTRL, SIOONCTRL, ACPI);
+ SIG_EXPR_LIST_DECL_SINGLE(P21, DASHP21, DASHP21, SIG_DESC_SET(SCU94, 11));
+ PIN_DECL_2(P21, GPIOY3, SIOONCTRL, DASHP21);
+-- 
+2.7.4
+
