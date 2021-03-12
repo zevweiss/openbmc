@@ -3,7 +3,7 @@ new file mode 100644
 index 000000000000..5c67baf01e6c
 --- /dev/null
 +++ b/arch/arm/boot/dts/aspeed-equinix-e3c246d4i.dts
-@@ -0,0 +1,189 @@
+@@ -0,0 +1,197 @@
 +// SPDX-License-Identifier: GPL-2.0+
 +/dts-v1/;
 +
@@ -192,4 +192,12 @@ index 000000000000..5c67baf01e6c
 +&kcs3 {
 +	status = "okay";
 +	aspeed,lpc-io-reg = <0xca2>;
++};
++
++&peci0 {
++	status = "okay";
++	peci-client@30 {
++		compatible = "intel,peci-client";
++		reg = <0x30>;
++	};
 +};

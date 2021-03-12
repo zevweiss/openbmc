@@ -40,4 +40,5 @@ RDEPENDS_${PN}-system = " \
         phosphor-ipmi-kcs \
         phosphor-post-code-manager \
         fru-macaddr \
+        libpeci \
         "
