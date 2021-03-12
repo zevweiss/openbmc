@@ -1,0 +1,38 @@
+From 7a0b2e2747e1192e040fa39806448b9897d169b7 Mon Sep 17 00:00:00 2001
+From: Zev Weiss <zev@bewilderbeest.net>
+Date: Thu, 24 Sep 2020 21:47:45 +0000
+Subject: [PATCH 2/2] peci-cputemp: force core_mask to 0xff.
+
+This is a hack and, obviously, extremely hardcoded to our specific
+hardware; according to some conversations with Intel though it sounds
+like the E-2278G hardware doesn't offer any way of determining this
+info at runtime, so here we are.
+---
+ drivers/hwmon/peci-cputemp.c | 4 ++++
+ 1 file changed, 4 insertions(+)
+
+diff --git a/drivers/hwmon/peci-cputemp.c b/drivers/hwmon/peci-cputemp.c
+index 78e442f433a7..71e17df936c5 100644
+--- a/drivers/hwmon/peci-cputemp.c
++++ b/drivers/hwmon/peci-cputemp.c
+@@ -328,6 +328,9 @@ static const struct hwmon_ops cputemp_ops = {
+ 
+ static int check_resolved_cores(struct peci_cputemp *priv)
+ {
++#if 1
++	priv->core_mask = 0xff;
++#else
+ 	struct peci_rd_pci_cfg_local_msg msg;
+ 	int ret;
+ 
+@@ -349,6 +352,7 @@ static int check_resolved_cores(struct peci_cputemp *priv)
+ 	priv->core_mask = le32_to_cpup((__le32 *)msg.pci_config);
+ 	if (!priv->core_mask)
+ 		return -EAGAIN;
++#endif
+ 
+ 	dev_dbg(priv->dev, "Scanned resolved cores: 0x%llx\n", priv->core_mask);
+ 
+-- 
+2.7.4
+
