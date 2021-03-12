@@ -8,4 +8,7 @@ SRC_URI += " \
 	file://0003-Allow-monitoring-of-power-control-input-GPIOs.patch \
 	file://0004-peci-add-support-for-Coffee-Lake-Refresh-Xeon-E-hard.patch \
 	file://0005-peci-cputemp-force-core_mask-to-0xff.patch \
+	file://0006-aspeed-video-add-error-message-for-unhandled-interru.patch \
+	file://0007-aspeed-video-clear-spurious-interrupt-bits-unconditi.patch \
+	file://0008-aspeed-video-add-COMP_READY-to-VE_SPURIOUS_IRQS.patch \
 	"

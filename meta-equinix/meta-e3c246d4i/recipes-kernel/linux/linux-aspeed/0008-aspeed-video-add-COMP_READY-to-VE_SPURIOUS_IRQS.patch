@@ -1,0 +1,32 @@
+From 243506b1c8507a7990e638937de10deb24dd6456 Mon Sep 17 00:00:00 2001
+From: Zev Weiss <zev@bewilderbeest.net>
+Date: Wed, 18 Nov 2020 04:53:19 +0000
+Subject: [PATCH 3/3] aspeed-video: add COMP_READY to VE_SPURIOUS_IRQS
+
+This joins CAPTURE_COMPLETE and FRAME_COMPLETE in the set of interrupts
+that have been seen asserted by the hardware even when disabled, leading
+to the interrupt eventually getting disabled as described in commit
+65d270acb2d662c3346793663ac3a759eb4491b8.
+
+Signed-off-by: Zev Weiss <zev@bewilderbeest.net>
+---
+ drivers/media/platform/aspeed-video.c | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/media/platform/aspeed-video.c b/drivers/media/platform/aspeed-video.c
+index e6b475b7ffb0..0f40065d3366 100644
+--- a/drivers/media/platform/aspeed-video.c
++++ b/drivers/media/platform/aspeed-video.c
+@@ -541,7 +541,8 @@ static void aspeed_video_irq_res_change(struct aspeed_video *video, ulong delay)
+  * register.
+  */
+ #define VE_SPURIOUS_IRQS \
+-	(VE_INTERRUPT_CAPTURE_COMPLETE | VE_INTERRUPT_FRAME_COMPLETE)
++	(VE_INTERRUPT_CAPTURE_COMPLETE | VE_INTERRUPT_FRAME_COMPLETE \
++	 | VE_INTERRUPT_COMP_READY)
+ 
+ static irqreturn_t aspeed_video_irq(int irq, void *arg)
+ {
+-- 
+2.7.4
+
