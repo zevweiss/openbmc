@@ -1,0 +1,192 @@
+From 9d5c5f60b16127c2fc803e679ec8d2cef2bc687d Mon Sep 17 00:00:00 2001
+From: Zev Weiss <zev@bewilderbeest.net>
+Date: Wed, 27 Jan 2021 01:36:02 -0600
+Subject: [PATCH] Add Unit property to dbus interfaces
+
+Some sensor types still TODO.
+---
+ include/sensor.hpp        | 14 ++++++++++++++
+ src/ADCSensor.cpp         |  2 +-
+ src/CPUSensor.cpp         |  2 +-
+ src/ExitAirTempSensor.cpp |  4 ++--
+ src/HwmonTempSensor.cpp   |  2 +-
+ src/IpmbSensor.cpp        |  2 +-
+ src/MCUTempSensor.cpp     |  2 +-
+ src/NVMeSensor.cpp        |  2 +-
+ src/PSUSensor.cpp         |  4 ++--
+ src/TachSensor.cpp        |  2 +-
+ 10 files changed, 25 insertions(+), 11 deletions(-)
+
+diff --git a/include/sensor.hpp b/include/sensor.hpp
+index 0ef87d514aff..1c91046b9170 100644
+--- a/include/sensor.hpp
++++ b/include/sensor.hpp
+@@ -16,6 +16,15 @@ constexpr size_t sensorFailedPollTimeMs = 5000;
+ // This is intentionally not DEBUG, avoid clash with usage in .cpp files
+ constexpr bool enableInstrumentation = false;
+ 
++#define UNITPREFIX "xyz.openbmc_project.Sensor.Value.Unit."
++#define UNIT_DEGC UNITPREFIX "DegreesC"
++#define UNIT_RPM UNITPREFIX "RPMS"
++#define UNIT_WATT UNITPREFIX "Watts"
++#define UNIT_VOLT UNITPREFIX "Volts"
++#define UNIT_AMP UNITPREFIX "Amperes"
++#define UNIT_JOULE UNITPREFIX "Joules"
++#define UNIT_METER UNITPREFIX "Meters"
++
+ constexpr const char* sensorValueInterface = "xyz.openbmc_project.Sensor.Value";
+ constexpr const char* availableInterfaceName =
+     "xyz.openbmc_project.State.Decorator.Availability";
+@@ -182,6 +191,7 @@ struct Sensor
+ 
+     void
+         setInitialProperties(std::shared_ptr<sdbusplus::asio::connection>& conn,
++                             const char* unit,
+                              const std::string label = std::string(),
+                              size_t thresholdSize = 0)
+     {
+@@ -192,6 +202,10 @@ struct Sensor
+ 
+         createAssociation(association, configurationPath);
+ 
++        if (unit)
++        {
++            sensorInterface->register_property("Unit", std::string(unit));
++        }
+         sensorInterface->register_property("MaxValue", maxValue);
+         sensorInterface->register_property("MinValue", minValue);
+         sensorInterface->register_property(
+diff --git a/src/ADCSensor.cpp b/src/ADCSensor.cpp
+index 7afb2abef141..d5b28f74eda4 100644
+--- a/src/ADCSensor.cpp
++++ b/src/ADCSensor.cpp
+@@ -80,7 +80,7 @@ ADCSensor::ADCSensor(const std::string& path,
+     association = objectServer.add_interface(
+         "/xyz/openbmc_project/sensors/voltage/" + name, association::interface);
+ 
+-    setInitialProperties(conn);
++    setInitialProperties(conn, UNIT_VOLT);
+ }
+ 
+ ADCSensor::~ADCSensor()
+diff --git a/src/CPUSensor.cpp b/src/CPUSensor.cpp
+index 2356821d9a1e..4488c4f96317 100644
+--- a/src/CPUSensor.cpp
++++ b/src/CPUSensor.cpp
+@@ -85,7 +85,7 @@ CPUSensor::CPUSensor(const std::string& path, const std::string& objectType,
+             association = objectServer.add_interface(interfacePath,
+                                                      association::interface);
+ 
+-            setInitialProperties(conn);
++            setInitialProperties(conn, UNIT_DEGC);
+         }
+     }
+ 
+diff --git a/src/ExitAirTempSensor.cpp b/src/ExitAirTempSensor.cpp
+index c66745721449..c0cbb275877c 100644
+--- a/src/ExitAirTempSensor.cpp
++++ b/src/ExitAirTempSensor.cpp
+@@ -193,7 +193,7 @@ CFMSensor::CFMSensor(std::shared_ptr<sdbusplus::asio::connection>& conn,
+     association = objectServer.add_interface(
+         "/xyz/openbmc_project/sensors/cfm/" + name, association::interface);
+ 
+-    setInitialProperties(conn);
++    setInitialProperties(conn, NULL); /* FIXME: add CFM unit? */
+ 
+     pwmLimitIface =
+         objectServer.add_interface("/xyz/openbmc_project/control/pwm_limit",
+@@ -519,7 +519,7 @@ ExitAirTempSensor::ExitAirTempSensor(
+     association = objectServer.add_interface(
+         "/xyz/openbmc_project/sensors/temperature/" + name,
+         association::interface);
+-    setInitialProperties(conn);
++    setInitialProperties(conn, UNIT_DEGC);
+ }
+ 
+ ExitAirTempSensor::~ExitAirTempSensor()
+diff --git a/src/HwmonTempSensor.cpp b/src/HwmonTempSensor.cpp
+index eaaa9e803a94..6062ef80468e 100644
+--- a/src/HwmonTempSensor.cpp
++++ b/src/HwmonTempSensor.cpp
+@@ -71,7 +71,7 @@ HwmonTempSensor::HwmonTempSensor(
+     association = objectServer.add_interface(
+         "/xyz/openbmc_project/sensors/temperature/" + name,
+         association::interface);
+-    setInitialProperties(conn);
++    setInitialProperties(conn, UNIT_DEGC);
+ }
+ 
+ HwmonTempSensor::~HwmonTempSensor()
+diff --git a/src/IpmbSensor.cpp b/src/IpmbSensor.cpp
+index 29fd7f47e87b..be331cb63f02 100644
+--- a/src/IpmbSensor.cpp
++++ b/src/IpmbSensor.cpp
+@@ -105,7 +105,7 @@ IpmbSensor::~IpmbSensor()
+ void IpmbSensor::init(void)
+ {
+     loadDefaults();
+-    setInitialProperties(dbusConnection);
++    setInitialProperties(dbusConnection, NULL); /* FIXME: switch on subtype? */
+     if (initCommand)
+     {
+         runInitCmd();
+diff --git a/src/MCUTempSensor.cpp b/src/MCUTempSensor.cpp
+index 6d94bd214d44..1486051957d0 100644
+--- a/src/MCUTempSensor.cpp
++++ b/src/MCUTempSensor.cpp
+@@ -99,7 +99,7 @@ MCUTempSensor::~MCUTempSensor()
+ 
+ void MCUTempSensor::init(void)
+ {
+-    setInitialProperties(dbusConnection);
++    setInitialProperties(dbusConnection, UNIT_DEGC);
+     read();
+ }
+ 
+diff --git a/src/NVMeSensor.cpp b/src/NVMeSensor.cpp
+index cfa7d20350ac..ae0454ca5379 100644
+--- a/src/NVMeSensor.cpp
++++ b/src/NVMeSensor.cpp
+@@ -464,7 +464,7 @@ NVMeSensor::NVMeSensor(sdbusplus::asio::object_server& objectServer,
+         "/xyz/openbmc_project/sensors/temperature/" + name,
+         association::interface);
+ 
+-    setInitialProperties(conn);
++    setInitialProperties(conn, UNIT_DEGC);
+ }
+ 
+ NVMeSensor::~NVMeSensor()
+diff --git a/src/PSUSensor.cpp b/src/PSUSensor.cpp
+index 25cc5ada0640..c97d42429556 100644
+--- a/src/PSUSensor.cpp
++++ b/src/PSUSensor.cpp
+@@ -90,11 +90,11 @@ PSUSensor::PSUSensor(const std::string& path, const std::string& objectType,
+     // register and initialize "Associations" property.
+     if (label.empty() || tSize == _thresholds.size())
+     {
+-        setInitialProperties(conn);
++        setInitialProperties(conn, NULL); /* FIXME: unit? */
+     }
+     else
+     {
+-        setInitialProperties(conn, label, tSize);
++        setInitialProperties(conn, NULL, label, tSize); /* FIXME: unit? */
+     }
+ 
+     association = objectServer.add_interface(dbusPath, association::interface);
+diff --git a/src/TachSensor.cpp b/src/TachSensor.cpp
+index 0490135c59c9..420db1ec4e8e 100644
+--- a/src/TachSensor.cpp
++++ b/src/TachSensor.cpp
+@@ -99,7 +99,7 @@ TachSensor::TachSensor(const std::string& path, const std::string& objectType,
+                  "/xyz/openbmc_project/sensors/fan_tach/" + name}});
+         itemAssoc->initialize();
+     }
+-    setInitialProperties(conn);
++    setInitialProperties(conn, UNIT_RPM);
+     setupRead();
+ }
+ 
+-- 
+2.17.1
+

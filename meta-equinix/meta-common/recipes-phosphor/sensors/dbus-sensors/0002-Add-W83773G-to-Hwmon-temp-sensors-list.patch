@@ -1,0 +1,35 @@
+From 8b32519ec1184f0e3a982352fef9bdddca596bcb Mon Sep 17 00:00:00 2001
+From: Zev Weiss <zev@bewilderbeest.net>
+Date: Tue, 26 Jan 2021 23:27:50 +0000
+Subject: [PATCH] Add W83773G to Hwmon temp-sensors list
+
+---
+ src/HwmonTempMain.cpp | 5 +++--
+ 1 file changed, 3 insertions(+), 2 deletions(-)
+
+diff --git a/src/HwmonTempMain.cpp b/src/HwmonTempMain.cpp
+index b5cbf235502e..f71d011301d3 100644
+--- a/src/HwmonTempMain.cpp
++++ b/src/HwmonTempMain.cpp
+@@ -40,7 +40,7 @@
+ static constexpr bool DEBUG = false;
+ 
+ namespace fs = std::filesystem;
+-static constexpr std::array<const char*, 13> sensorTypes = {
++static constexpr std::array<const char*, 14> sensorTypes = {
+     "xyz.openbmc_project.Configuration.EMC1412",
+     "xyz.openbmc_project.Configuration.EMC1413",
+     "xyz.openbmc_project.Configuration.EMC1414",
+@@ -53,7 +53,8 @@ static constexpr std::array<const char*, 13> sensorTypes = {
+     "xyz.openbmc_project.Configuration.TMP175",
+     "xyz.openbmc_project.Configuration.TMP421",
+     "xyz.openbmc_project.Configuration.TMP441",
+-    "xyz.openbmc_project.Configuration.TMP75"};
++    "xyz.openbmc_project.Configuration.TMP75",
++    "xyz.openbmc_project.Configuration.W83773G"};
+ 
+ void createSensors(
+     boost::asio::io_service& io, sdbusplus::asio::object_server& objectServer,
+-- 
+2.7.4
+
