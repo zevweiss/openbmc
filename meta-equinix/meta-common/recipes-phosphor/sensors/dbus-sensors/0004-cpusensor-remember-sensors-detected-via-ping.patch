@@ -1,0 +1,33 @@
+From 6339587114754a9522829e6d6f465f1252c9c7db Mon Sep 17 00:00:00 2001
+From: Zev Weiss <zev@bewilderbeest.net>
+Date: Wed, 24 Feb 2021 00:30:28 -0600
+Subject: [PATCH] cpusensor: remember sensors detected via ping
+
+They previously weren't getting added to inventoryIfaces, so when the
+host rebooted and the sensor re-detected, it would attempt to create
+another instance of the same interface, leading to cpusensor crashing on
+an uncaught exception:
+
+  terminate called after throwing an instance of 'sdbusplus::exception::SdBusError'
+    what():  sd_bus_add_object_vtable: org.freedesktop.DBus.Error.FileExists: File exists
+
+With this patch in place, cpusensor runs smoothly across a host reboot.
+---
+ src/CPUSensorMain.cpp | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/src/CPUSensorMain.cpp b/src/CPUSensorMain.cpp
+index dfc942fcf7f3..1b6be5a07ff0 100644
+--- a/src/CPUSensorMain.cpp
++++ b/src/CPUSensorMain.cpp
+@@ -156,6 +156,7 @@ bool createSensors(boost::asio::io_service& io,
+             iface->register_property("PrettyName", cpu.name);
+             iface->register_property("Present", true);
+             iface->initialize();
++            inventoryIfaces[cpu.name] = std::move(iface);
+         }
+     }
+     if (!available)
+-- 
+2.17.1
+
