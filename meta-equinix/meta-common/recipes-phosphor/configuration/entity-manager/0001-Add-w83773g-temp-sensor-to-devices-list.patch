@@ -1,0 +1,25 @@
+From 20c7aceb2694787254a1aa8e3f2050db9bcf609b Mon Sep 17 00:00:00 2001
+From: Zev Weiss <zev@bewilderbeest.net>
+Date: Tue, 9 Jun 2020 20:53:19 +0000
+Subject: [PATCH] Add w83773g temp-sensor to devices list.
+
+---
+ include/devices.hpp | 4 +++-
+ 1 file changed, 3 insertions(+), 1 deletion(-)
+
+diff --git a/include/devices.hpp b/include/devices.hpp
+index 7068d4dccc69..ceb5fd8c6d9c 100644
+--- a/include/devices.hpp
++++ b/include/devices.hpp
+@@ -110,5 +110,7 @@ const boost::container::flat_map<const char*, ExportTemplate, CmpStr>
+                                    "/sys/bus/i2c/devices/i2c-$Bus/new_device")},
+          {"TMP75",
+           ExportTemplate("tmp75 $Address",
+-                         "/sys/bus/i2c/devices/i2c-$Bus/new_device")}}};
++                         "/sys/bus/i2c/devices/i2c-$Bus/new_device")},
++         {"W83773G", ExportTemplate("w83773g $Address",
++                                    "/sys/bus/i2c/devices/i2c-$Bus/new_device")}}};
+ } // namespace devices
+-- 
+2.7.4
+
