@@ -1,0 +1,100 @@
+From cadce95b8bf0d1c69c9d6f046d9e24db397a58eb Mon Sep 17 00:00:00 2001
+From: Zev Weiss <zev@bewilderbeest.net>
+Date: Tue, 26 Jan 2021 22:43:04 +0000
+Subject: [PATCH] Hack out SIO_ONCONTROL GPIO usage
+
+It wasn't used for anything but logging messages on rising/falling
+edges (not incorporated into the state-machine logic at all), and
+isn't a signal I'm aware of our hardware having, so axe it.
+---
+ power-control-x86/src/power_control.cpp | 39 ---------------------------------
+ 1 file changed, 39 deletions(-)
+
+diff --git a/power-control-x86/src/power_control.cpp b/power-control-x86/src/power_control.cpp
+index ab704d805200..eb46f763fb5b 100644
+--- a/power-control-x86/src/power_control.cpp
++++ b/power-control-x86/src/power_control.cpp
+@@ -45,7 +45,6 @@ static std::string powerOkName;
+ static std::string resetOutName;
+ static std::string nmiOutName;
+ static std::string sioPwrGoodName;
+-static std::string sioOnControlName;
+ static std::string sioS5Name;
+ static std::string postCompleteName;
+ static std::string powerButtonName;
+@@ -112,8 +111,6 @@ static gpiod::line psPowerOKLine;
+ static boost::asio::posix::stream_descriptor psPowerOKEvent(io);
+ static gpiod::line sioPowerGoodLine;
+ static boost::asio::posix::stream_descriptor sioPowerGoodEvent(io);
+-static gpiod::line sioOnControlLine;
+-static boost::asio::posix::stream_descriptor sioOnControlEvent(io);
+ static gpiod::line sioS5Line;
+ static boost::asio::posix::stream_descriptor sioS5Event(io);
+ static gpiod::line powerButtonLine;
+@@ -1736,26 +1733,6 @@ static void sioPowerGoodHandler()
+         });
+ }
+ 
+-static void sioOnControlHandler()
+-{
+-    gpiod::line_event gpioLineEvent = sioOnControlLine.event_read();
+-
+-    bool sioOnControl =
+-        gpioLineEvent.event_type == gpiod::line_event::RISING_EDGE;
+-    std::cerr << "SIO_ONCONTROL value changed: " << sioOnControl << "\n";
+-    sioOnControlEvent.async_wait(
+-        boost::asio::posix::stream_descriptor::wait_read,
+-        [](const boost::system::error_code ec) {
+-            if (ec)
+-            {
+-                std::cerr << "SIO ONCONTROL handler error: " << ec.message()
+-                          << "\n";
+-                return;
+-            }
+-            sioOnControlHandler();
+-        });
+-}
+-
+ static void sioS5Handler()
+ {
+     gpiod::line_event gpioLineEvent = sioS5Line.event_read();
+@@ -2129,11 +2106,6 @@ static int loadConfigValues()
+         resetOutName = data["RstOut"];
+     }
+ 
+-    if (data.contains("SIOOnCtl"))
+-    {
+-        sioOnControlName = data["SIOOnCtl"];
+-    }
+-
+     if (data.contains("SIOPwrGd"))
+     {
+         sioPwrGoodName = data["SIOPwrGd"];
+@@ -2173,7 +2145,6 @@ int main(int argc, char* argv[])
+         "xyz.openbmc_project.Control.Host.RestartCause");
+ 
+     if (power_control::sioPwrGoodName.empty() ||
+-        power_control::sioOnControlName.empty() ||
+         power_control::sioS5Name.empty())
+     {
+         power_control::sioEnabled = false;
+@@ -2209,16 +2180,6 @@ int main(int argc, char* argv[])
+             return -1;
+         }
+ 
+-        // Request SIO_ONCONTROL GPIO events
+-        if (!power_control::requestGPIOEvents(
+-                power_control::sioOnControlName,
+-                power_control::sioOnControlHandler,
+-                power_control::sioOnControlLine,
+-                power_control::sioOnControlEvent))
+-        {
+-            return -1;
+-        }
+-
+         // Request SIO_S5 GPIO events
+         if (!power_control::requestGPIOEvents(
+                 power_control::sioS5Name, power_control::sioS5Handler,
+-- 
+2.7.4
+

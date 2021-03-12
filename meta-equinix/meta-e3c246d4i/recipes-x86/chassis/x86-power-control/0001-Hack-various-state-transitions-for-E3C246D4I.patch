@@ -1,0 +1,65 @@
+From 8337852e9fc7d17e2e7ac97d8d4ad886a409ffa8 Mon Sep 17 00:00:00 2001
+From: Zev Weiss <zev@bewilderbeest.net>
+Date: Thu, 20 Aug 2020 21:30:51 +0000
+Subject: [PATCH] Hack various state transitions for E3C246D4I.
+
+We now accept sioS5Asserts as (in most cases) equivalent to
+psPowerOKDeAssert, since our PS_PWROK GPIO is a dummy always-asserted
+line), because I'm not sure we have a meaningful equivalent available.
+
+Likewise, in determining initial state on startup we now check
+sioS5Line in addition to psPowerOKLine.
+---
+ power-control-x86/src/power_control.cpp | 8 ++++++--
+ 1 file changed, 6 insertions(+), 2 deletions(-)
+
+diff --git a/power-control-x86/src/power_control.cpp b/power-control-x86/src/power_control.cpp
+index d3a2054e62e1..50bd14b2cc70 100644
+--- a/power-control-x86/src/power_control.cpp
++++ b/power-control-x86/src/power_control.cpp
+@@ -1387,7 +1387,7 @@ static void powerStateOn(const Event event)
+             beep(beepPowerFail);
+             break;
+         case Event::sioS5Assert:
+-            setPowerState(PowerState::transitionToOff);
++            setPowerState(PowerState::off);
+             addRestartCause(RestartCause::softReset);
+             break;
+         case Event::postCompleteDeAssert:
+@@ -1536,6 +1536,7 @@ static void powerStateTransitionToOff(const Event event)
+     logEvent(__FUNCTION__, event);
+     switch (event)
+     {
++        case Event::sioS5Assert:
+         case Event::psPowerOKDeAssert:
+             // Cancel any GPIO assertions held during the transition
+             gpioAssertTimer.cancel();
+@@ -1552,6 +1553,7 @@ static void powerStateGracefulTransitionToOff(const Event event)
+     logEvent(__FUNCTION__, event);
+     switch (event)
+     {
++        case Event::sioS5Assert:
+         case Event::psPowerOKDeAssert:
+             gracefulPowerOffTimer.cancel();
+             setPowerState(PowerState::off);
+@@ -1599,6 +1601,7 @@ static void powerStateTransitionToCycleOff(const Event event)
+     logEvent(__FUNCTION__, event);
+     switch (event)
+     {
++        case Event::sioS5Assert:
+         case Event::psPowerOKDeAssert:
+             // Cancel any GPIO assertions held during the transition
+             gpioAssertTimer.cancel();
+@@ -2112,7 +2115,8 @@ int main(int argc, char* argv[])
+     // Initialize the power state
+     power_control::powerState = power_control::PowerState::off;
+     // Check power good
+-    if (power_control::psPowerOKLine.get_value() > 0)
++    if (power_control::psPowerOKLine.get_value() > 0
++        && power_control::sioS5Line.get_value() > 0)
+     {
+         power_control::powerState = power_control::PowerState::on;
+     }
+-- 
+2.7.4
+

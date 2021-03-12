@@ -1,0 +1,38 @@
+From e6d753befa8e637947d791c08e48d170256a5afa Mon Sep 17 00:00:00 2001
+From: Zev Weiss <zweiss@equinix.com>
+Date: Fri, 12 Mar 2021 01:04:55 +0000
+Subject: [PATCH] Tweak json config to match e3c246d4i GPIO names
+
+---
+ power-control-x86/config/power-config-host0.json | 14 +++++++-------
+ 1 file changed, 7 insertions(+), 7 deletions(-)
+
+diff --git a/power-control-x86/config/power-config-host0.json b/power-control-x86/config/power-config-host0.json
+index 567f41962e6d..d02aa4d674eb 100644
+--- a/power-control-x86/config/power-config-host0.json
++++ b/power-control-x86/config/power-config-host0.json
+@@ -2,14 +2,14 @@
+   "IdButton": "ID_BUTTON",
+   "NMIButton": "NMI_BUTTON",
+   "NMIOut": "NMI_OUT",
+-  "PostComplete": "POST_COMPLETE",
+-  "PwrButton": "POWER_BUTTON",
++  "PostComplete": "FM_BIOS_POST_CMPLT_N",
++  "PwrButton": "BMC_PSIN",
+   "PwrOK": "PS_PWROK",
+-  "PwrOut": "POWER_OUT",
+-  "RstButton": "RESET_BUTTON",
+-  "RstOut": "RESET_OUT",
++  "PwrOut": "BMC_PSOUT",
++  "RstButton": "BMC_RESETCON",
++  "RstOut": "RESETCON",
+   "SIOOnCtl": "SIO_ONCONTROL",
+-  "SIOPwrGd": "SIO_POWER_GOOD",
+-  "SIOS5": "SIO_S5"
++  "SIOPwrGd": "O_PWROK",
++  "SIOS5": "SLP_S5"
+ }
+ 
+-- 
+2.30.1
+
