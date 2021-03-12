@@ -41,4 +41,5 @@ RDEPENDS_${PN}-system = " \
         phosphor-post-code-manager \
         fru-macaddr \
         libpeci \
+        host-error-monitor \
         "
